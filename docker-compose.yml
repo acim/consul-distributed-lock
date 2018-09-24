@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+  consul:
+    image: consul:latest
+    container_name: consul
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:53/udp"
+    restart: always
+
+  # registrator:
+  #   image: gliderlabs/registrator:latest
+  #   container_name: registrator
+  #   volumes:
+  #     - "/var/run/docker.sock:/tmp/docker.sock"
+  #   command: -internal consul://consul:8500
+  #   restart: always
+  #   depends_on:
+  #     - consul
+
+  app1:
+    build: .
+    container_name: appc1
+    restart: on-failure
+    depends_on:
+      - consul
+    environment:
+      APP_MY_ID: appc1
+      SERVICE_NAME: appc
+
+  app2:
+    build: .
+    container_name: appc2
+    restart: on-failure
+    depends_on:
+      - consul
+    environment:
+      APP_MY_ID: appc2
+      SERVICE_NAME: appc
+
+  app3:
+    build: .
+    container_name: appc3
+    restart: on-failure
+    depends_on:
+      - consul
+    environment:
+      APP_MY_ID: appc3
+      SERVICE_NAME: appc
