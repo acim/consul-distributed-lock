@@ -12,13 +12,14 @@ func main() {
 	for {
 		time.Sleep(10 * time.Second)
 		me := os.Getenv("APP_MY_ID")
+		sn := os.Getenv("SERVICE_NAME")
 
-		client, err := NewConsulClient("consul")
+		client, err := NewConsulClient("consul:8500")
 		if err != nil {
 			fmt.Println(me, err)
 		}
 
-		err = client.Register("appc", 0)
+		err = client.Register(me, sn, 0)
 		if err != nil {
 			fmt.Println(me, err)
 		}
@@ -51,9 +52,9 @@ func NewConsulClient(addr string) (*client, error) {
 }
 
 // Register a service with consul local agent
-func (c *client) Register(name string, port int) error {
+func (c *client) Register(id, name string, port int) error {
 	reg := &consul.AgentServiceRegistration{
-		ID:   name,
+		ID:   id,
 		Name: name,
 		Port: port,
 	}
