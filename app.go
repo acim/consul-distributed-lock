@@ -31,7 +31,7 @@ func main() {
 		if lead {
 			defer unlock()
 			log.Printf("%s working\n", me)
-			time.Sleep(15 * time.Second)
+			time.Sleep(15 * time.Second) // something useful to do
 			log.Printf("%s finished\n", me)
 			return
 		}
