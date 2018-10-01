@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type singleRunLock struct {
+type singleRunProcess struct {
 	c  *api.Client
 	s  *api.Session
 	id string
@@ -15,7 +15,7 @@ type singleRunLock struct {
 	k  string
 }
 
-func NewSingleRunLock(address, key string) (*singleRunLock, error) {
+func NewSingleProcess(address, key string) (*singleRunProcess, error) {
 	config := api.DefaultConfig()
 	config.Address = address
 	var consul *api.Client
@@ -57,7 +57,7 @@ func NewSingleRunLock(address, key string) (*singleRunLock, error) {
 		return nil, fmt.Errorf("error creating lock: %v", err)
 	}
 
-	return &singleRunLock{
+	return &singleRunProcess{
 		c:  consul,
 		s:  session,
 		id: id,
@@ -66,7 +66,7 @@ func NewSingleRunLock(address, key string) (*singleRunLock, error) {
 	}, nil
 }
 
-func (l *singleRunLock) Lock() (bool, error, func() error) {
+func (l *singleRunProcess) Lock() (bool, error, func() error) {
 	leaderCh, err := l.l.Lock(nil)
 	if err != nil {
 		return false, fmt.Errorf("error locking: %v", err), nil
@@ -83,14 +83,15 @@ func (l *singleRunLock) Lock() (bool, error, func() error) {
 	return true, nil, l.unlock
 }
 
-func (l *singleRunLock) unlock() error {
-	time.Sleep(10 * time.Second)
+func (l *singleRunProcess) unlock() error {
 	defer l.s.Destroy(l.id, nil)
 
 	err := l.l.Unlock()
 	if err != nil {
 		return fmt.Errorf("error unlocking: %v", err)
 	}
+
+	l.c.KV().Delete(l.k, nil)
 
 	return nil
 }
