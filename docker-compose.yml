@@ -11,34 +11,56 @@ services:
 
   app1:
     build: .
-    container_name: appc1
+    container_name: app1
     depends_on:
       - consul
     environment:
-      APP_MY_ID: appc1
-      SERVICE_NAME: appc
+      APP_MY_ID: app1
+      SERVICE_NAME: app
     volumes:
       - ./:/go/app
 
   app2:
     build: .
-    container_name: appc2
+    container_name: app2
     depends_on:
       - consul
     environment:
-      APP_MY_ID: appc2
-      SERVICE_NAME: appc
+      APP_MY_ID: app2
+      SERVICE_NAME: app
     volumes:
       - ./:/go/app
 
 
   app3:
     build: .
-    container_name: appc3
+    container_name: app3
     depends_on:
       - consul
     environment:
-      APP_MY_ID: appc3
-      SERVICE_NAME: appc
+      APP_MY_ID: app3
+      SERVICE_NAME: app
+    volumes:
+      - ./:/go/app
+
+  app4:
+    build: .
+    container_name: app4
+    depends_on:
+      - consul
+    environment:
+      APP_MY_ID: app4
+      SERVICE_NAME: app
+    volumes:
+      - ./:/go/app
+
+  app5:
+    build: .
+    container_name: app5
+    depends_on:
+      - consul
+    environment:
+      APP_MY_ID: app5
+      SERVICE_NAME: app
     volumes:
       - ./:/go/app
