@@ -1,21 +1,24 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/acim/test-consul-leader-election/pkg/cloud/consul"
+	"github.com/hashicorp/consul/api"
 	"github.com/robfig/cron"
 )
 
 func main() {
 	me := os.Getenv("APP_MY_ID")
 	sn := os.Getenv("SERVICE_NAME")
-	var client *consul.Client
+	config := api.DefaultConfig()
+	config.Address = "consul:8500"
+	var consul *api.Client
 	var err error
 	for {
-		client, err = consul.NewClient("consul:8500", sn, me, 0)
+		consul, err = api.NewClient(config)
 		if err != nil {
 			log.Printf("%s can't connect to consul: %v\n", me, err)
 			time.Sleep(3 * time.Second)
@@ -24,26 +27,36 @@ func main() {
 		break
 	}
 
-	// err = client.Register()
-	// if err != nil {
-	// 	log.Printf("%s can't register to consul: %v\n", me, err)
-	// }
-
 	c := cron.New()
 	c.AddFunc("0,30 * * * * *", func() {
-		log.Printf("%s cron triggered at %s", me, time.Now().String())
+		log.Printf("%s cron trigger", me)
+		opts := &api.LockOptions{
+			Key:        fmt.Sprintf("service/%s/lock/", sn),
+			Value:      []byte(fmt.Sprintf("set by %s", me)),
+			SessionTTL: "10s",
+		}
 
-		if !client.Lock() {
-			log.Printf("%s didn't acquire lock", me)
+		lock, err := consul.LockOpts(opts)
+		if err != nil {
+			log.Printf("%s Lock: %v", me, err)
 			return
 		}
 
-		log.Printf("%s acquired lock - doing something for 20 seconds", me)
-		time.Sleep(20 * time.Second)
-		err = client.Unlock()
+		_, err = lock.Lock(nil)
 		if err != nil {
-			log.Printf("%s can't release lock: %v\n", me, err)
+			log.Printf("%s Lock: %v", me, err)
+			return
 		}
+		log.Printf("%s lock, doing something", me)
+		time.Sleep(20 * time.Second)
+		log.Printf("%s unlock", me)
+		err = lock.Unlock()
+		if err != nil {
+			log.Printf("%s unlock: %v", me, err)
+		}
+
+		// <-lockCh
+		// log.Println(me, 2)
 	})
 	c.Start()
 	defer c.Stop()

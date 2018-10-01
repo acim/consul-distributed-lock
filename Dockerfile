@@ -6,4 +6,4 @@ RUN go get github.com/cespare/reflex
 
 COPY build.sh /usr/local/bin
 
-CMD ["reflex", "-g", "*.go", "build.sh"]
+CMD ["reflex", "-s", "-g", "*.go", "-d", "none", "build.sh"]
