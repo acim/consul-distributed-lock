@@ -28,17 +28,24 @@ func main() {
 	}
 
 	c := cron.New()
-	c.AddFunc("0 30 * * * *", func() {
+	c.AddFunc("0 * * * * *", func() {
+		log.Printf("%s cron triggered", me)
 		lost, err := client.Lock()
 		if err != nil {
 			log.Printf("%s can't acquire lock: %v\n", me, err)
 			return
 		}
 		log.Printf("%s acquired lock - doing something for 10 seconds", me)
-		time.Sleep(10 * time.Second)
-		err = client.Unlock()
-		if err != nil {
-			log.Printf("%s can't release lock: %v\n", me, err)
+
+		select {
+		case <-lost:
+			log.Printf("%s lost lock", me)
+		default:
+			time.Sleep(10 * time.Second)
+			err = client.Unlock()
+			if err != nil {
+				log.Printf("%s can't release lock: %v\n", me, err)
+			}
 		}
 	})
 	c.Start()
