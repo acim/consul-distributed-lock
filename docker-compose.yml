@@ -5,10 +5,7 @@ services:
     image: consul:latest
     container_name: consul
     ports:
-      - "8300:8300"
-      - "8400:8400"
       - "8500:8500"
-      - "8600:53/udp"
     logging:
       driver: "none"
 
@@ -21,7 +18,7 @@ services:
       APP_MY_ID: appc1
       SERVICE_NAME: appc
     volumes:
-      - ./:/go/app:ro
+      - ./:/go/app
 
   app2:
     build: .
@@ -32,7 +29,7 @@ services:
       APP_MY_ID: appc2
       SERVICE_NAME: appc
     volumes:
-      - ./:/go/app:ro
+      - ./:/go/app
 
 
   app3:
@@ -44,4 +41,4 @@ services:
       APP_MY_ID: appc3
       SERVICE_NAME: appc
     volumes:
-      - ./:/go/app:ro
+      - ./:/go/app

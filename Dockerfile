@@ -4,4 +4,6 @@ WORKDIR /go/app
 
 RUN go get github.com/cespare/reflex
 
-CMD ["reflex", "-g", "*.go", "make"]
+COPY build.sh /usr/local/bin
+
+CMD ["reflex", "-g", "*.go", "build.sh"]

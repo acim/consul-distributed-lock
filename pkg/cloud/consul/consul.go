@@ -4,7 +4,6 @@ package consul
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -30,7 +29,6 @@ type Client struct {
 	consul  *api.Client
 	svcName string
 	svcID   string
-	port    int
 	lock    *api.Lock
 }
 
@@ -46,7 +44,6 @@ func NewClient(consulAddr, serviceName, serviceInstanceID string, port int) (*Cl
 		consul:  c,
 		svcName: serviceName,
 		svcID:   serviceInstanceID,
-		port:    port,
 	}, nil
 }
 
@@ -55,7 +52,6 @@ func (c *Client) Register() error {
 	reg := &api.AgentServiceRegistration{
 		ID:   c.svcID,
 		Name: c.svcName,
-		Port: c.port,
 	}
 	return c.consul.Agent().ServiceRegister(reg)
 }
@@ -79,32 +75,41 @@ func (c *Client) Service(service, tag string) ([]*api.ServiceEntry, *api.QueryMe
 }
 
 func (c *Client) Lock() bool {
-	var err error
-	c.lock, err = c.consul.LockKey(fmt.Sprintf("service/%s/lock/", c.svcName))
-	if err != nil {
-		log.Printf("Lock: %v", err)
-	}
+	// (string, *WriteMeta, error)
+	x, y, err := c.consul.Session().CreateNoChecks(&api.SessionEntry{
+		ID:   c.svcID,
+		Name: c.svcName,
+	}, nil)
 
-	stop := make(chan struct{})
-	time.AfterFunc(500*time.Millisecond, func() {
-		stop <- struct{}{}
-	})
+	log.Println(x, y, err)
 
-	log.Println(c.svcID, ">>>", 1)
-	ch, err := c.lock.Lock(stop)
-	if err != nil {
-		log.Printf("Lock: %v", err)
-	}
-	log.Println(c.svcID, ">>>", 2)
+	// var err error
+	// c.lock, err = c.consul.LockKey(fmt.Sprintf("service/%s/lock/", c.svcName))
+	// if err != nil {
+	// 	log.Printf("Lock: %v", err)
+	// }
 
-	select {
-	case <-ch:
-		log.Println(c.svcID, ">>>", 3)
-		return false
-	default:
-		log.Println(c.svcID, ">>>", 4)
-		return true
-	}
+	// stop := make(chan struct{})
+	// time.AfterFunc(500*time.Millisecond, func() {
+	// 	stop <- struct{}{}
+	// })
+
+	// log.Println(c.svcID, ">>>", 1)
+	// ch, err := c.lock.Lock(stop)
+	// if err != nil {
+	// 	log.Printf("Lock: %v", err)
+	// }
+	// log.Println(c.svcID, ">>>", 2)
+
+	// select {
+	// case <-ch:
+	// 	log.Println(c.svcID, ">>>", 3)
+	// 	return false
+	// default:
+	// 	log.Println(c.svcID, ">>>", 4)
+	// 	return true
+	// }
+	return false
 }
 
 func (c *Client) Unlock() error {

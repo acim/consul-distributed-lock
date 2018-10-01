@@ -24,13 +24,13 @@ func main() {
 		break
 	}
 
-	err = client.Register()
-	if err != nil {
-		log.Printf("%s can't register to consul: %v\n", me, err)
-	}
+	// err = client.Register()
+	// if err != nil {
+	// 	log.Printf("%s can't register to consul: %v\n", me, err)
+	// }
 
 	c := cron.New()
-	c.AddFunc("0 * * * * *", func() {
+	c.AddFunc("0,30 * * * * *", func() {
 		log.Printf("%s cron triggered at %s", me, time.Now().String())
 
 		if !client.Lock() {
