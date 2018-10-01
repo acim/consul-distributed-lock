@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"time"
@@ -33,26 +32,17 @@ func main() {
 	c := cron.New()
 	c.AddFunc("0 * * * * *", func() {
 		log.Printf("%s cron triggered at %s", me, time.Now().String())
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
 
-		lost, err := client.Lock(ctx)
-		if err != nil {
-			log.Printf("%s error acquiring lock: %v\n", me, err)
+		if !client.Lock() {
+			log.Printf("%s didn't acquire lock", me)
 			return
 		}
 
-		select {
-		case <-lost:
-			log.Printf("%s didn't acquire lock", me)
-			return
-		default:
-			log.Printf("%s acquired lock - doing something for 10 seconds", me)
-			time.Sleep(10 * time.Second)
-			err = client.Unlock()
-			if err != nil {
-				log.Printf("%s can't release lock: %v\n", me, err)
-			}
+		log.Printf("%s acquired lock - doing something for 20 seconds", me)
+		time.Sleep(20 * time.Second)
+		err = client.Unlock()
+		if err != nil {
+			log.Printf("%s can't release lock: %v\n", me, err)
 		}
 	})
 	c.Start()

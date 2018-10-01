@@ -2,8 +2,9 @@
 package consul
 
 import (
-	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -77,19 +78,30 @@ func (c *Client) Service(service, tag string) ([]*api.ServiceEntry, *api.QueryMe
 	return addrs, meta, nil
 }
 
-func (c *Client) Lock(ctx context.Context) (<-chan struct{}, error) {
+func (c *Client) Lock() bool {
 	var err error
 	c.lock, err = c.consul.LockKey(fmt.Sprintf("service/%s/lock/", c.svcName))
 	if err != nil {
-		return nil, fmt.Errorf("Lock: %v", err)
+		log.Printf("Lock: %v", err)
 	}
 
-	ch, err := c.lock.Lock(ctx.Done())
+	stop := make(chan struct{})
+	time.AfterFunc(500*time.Millisecond, func() {
+		stop <- struct{}{}
+	})
+
+	ch, err := c.lock.Lock(stop)
 	if err != nil {
-		return nil, fmt.Errorf("Lock: %v", err)
+		log.Printf("Lock: %v", err)
 	}
+	time.Sleep(600 * time.Millisecond)
 
-	return ch, nil
+	select {
+	case <-ch:
+		return false
+	default:
+		return true
+	}
 }
 
 func (c *Client) Unlock() error {

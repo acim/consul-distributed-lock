@@ -3,6 +3,6 @@ FROM golang:1.11
 WORKDIR /go/app
 COPY . .
 
-RUN CGO_ENABLED=0 go build -installsuffix cgo -ldflags "-s -w" -o /go/bin/app .
+RUN go get github.com/cespare/reflex
 
-CMD /go/bin/app
+CMD ["reflex","-c","/go/app/reflex.conf"]
