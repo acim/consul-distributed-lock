@@ -20,6 +20,8 @@ services:
     environment:
       APP_MY_ID: appc1
       SERVICE_NAME: appc
+    volumes:
+      - ./:/go/app:ro
 
   app2:
     build: .
@@ -29,6 +31,9 @@ services:
     environment:
       APP_MY_ID: appc2
       SERVICE_NAME: appc
+    volumes:
+      - ./:/go/app:ro
+
 
   app3:
     build: .
@@ -38,3 +43,5 @@ services:
     environment:
       APP_MY_ID: appc3
       SERVICE_NAME: appc
+    volumes:
+      - ./:/go/app:ro

@@ -94,7 +94,6 @@ func (c *Client) Lock() bool {
 	if err != nil {
 		log.Printf("Lock: %v", err)
 	}
-	time.Sleep(600 * time.Millisecond)
 
 	select {
 	case <-ch:

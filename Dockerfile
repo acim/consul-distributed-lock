@@ -1,7 +1,6 @@
 FROM golang:1.11
 
-WORKDIR /go/app
-COPY . .
+VOLUME /go/app
 
 RUN go get github.com/cespare/reflex
 
