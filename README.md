@@ -4,8 +4,6 @@
 ## How to use
 
 * run docker-compose up
-* try to stop services: docker-compose stop appc1
-* and also to start them: docker-compose start appc1
+* try to stop services: docker stop app1
+* and also to start them: docker start appc1
 * follow the output and see which leader is selected
-
-[gocode](https://github.com/ikgo/gocode)
