@@ -41,7 +41,7 @@ func NewClient(consulAddr, serviceName, serviceInstanceID string, port int) (*Cl
 	if err != nil {
 		return nil, err
 	}
-	return &client{
+	return &Client{
 		consul:  c,
 		svcName: serviceName,
 		svcID:   serviceInstanceID,
@@ -50,7 +50,7 @@ func NewClient(consulAddr, serviceName, serviceInstanceID string, port int) (*Cl
 }
 
 // Register implements Client interface.
-func (c *client) Register() error {
+func (c *Client) Register() error {
 	reg := &api.AgentServiceRegistration{
 		ID:   c.svcID,
 		Name: c.svcName,
@@ -60,12 +60,12 @@ func (c *client) Register() error {
 }
 
 // Deregister implements Client interface.
-func (c *client) Deregister(id string) error {
+func (c *Client) Deregister(id string) error {
 	return c.consul.Agent().ServiceDeregister(id)
 }
 
 // Service implements Client interface.
-func (c *client) Service(service, tag string) ([]*api.ServiceEntry, *api.QueryMeta, error) {
+func (c *Client) Service(service, tag string) ([]*api.ServiceEntry, *api.QueryMeta, error) {
 	passingOnly := true
 	addrs, meta, err := c.consul.Health().Service(service, tag, passingOnly, nil)
 	if len(addrs) == 0 && err == nil {
@@ -77,7 +77,7 @@ func (c *client) Service(service, tag string) ([]*api.ServiceEntry, *api.QueryMe
 	return addrs, meta, nil
 }
 
-func (c *client) Lock(ctx context.Context) (<-chan struct{}, error) {
+func (c *Client) Lock(ctx context.Context) (<-chan struct{}, error) {
 	var err error
 	c.lock, err = c.consul.LockKey(fmt.Sprintf("service/%s/lock/", c.svcName))
 	if err != nil {
@@ -92,6 +92,6 @@ func (c *client) Lock(ctx context.Context) (<-chan struct{}, error) {
 	return ch, nil
 }
 
-func (c *client) Unlock() error {
+func (c *Client) Unlock() error {
 	return c.lock.Unlock()
 }

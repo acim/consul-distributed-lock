@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -19,7 +20,9 @@ func main() {
 		if err != nil {
 			log.Printf("%s can't connect to consul: %v\n", me, err)
 			time.Sleep(3 * time.Second)
+			continue
 		}
+		break
 	}
 
 	err = client.Register()
@@ -29,18 +32,22 @@ func main() {
 
 	c := cron.New()
 	c.AddFunc("0 * * * * *", func() {
-		log.Printf("%s cron triggered", me)
-		lost, err := client.Lock()
+		log.Printf("%s cron triggered at %s", me, time.Now().String())
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		lost, err := client.Lock(ctx)
 		if err != nil {
-			log.Printf("%s can't acquire lock: %v\n", me, err)
+			log.Printf("%s error acquiring lock: %v\n", me, err)
 			return
 		}
-		log.Printf("%s acquired lock - doing something for 10 seconds", me)
 
 		select {
 		case <-lost:
-			log.Printf("%s lost lock", me)
+			log.Printf("%s didn't acquire lock", me)
+			return
 		default:
+			log.Printf("%s acquired lock - doing something for 10 seconds", me)
 			time.Sleep(10 * time.Second)
 			err = client.Unlock()
 			if err != nil {

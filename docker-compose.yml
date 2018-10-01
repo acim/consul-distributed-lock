@@ -9,12 +9,12 @@ services:
       - "8400:8400"
       - "8500:8500"
       - "8600:53/udp"
-    restart: on-failure
+    logging:
+      driver: "none"
 
   app1:
     build: .
     container_name: appc1
-    restart: on-failure
     depends_on:
       - consul
     environment:
@@ -24,7 +24,6 @@ services:
   app2:
     build: .
     container_name: appc2
-    restart: on-failure
     depends_on:
       - consul
     environment:
@@ -34,7 +33,6 @@ services:
   app3:
     build: .
     container_name: appc3
-    restart: on-failure
     depends_on:
       - consul
     environment:
