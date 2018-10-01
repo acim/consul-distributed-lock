@@ -90,15 +90,19 @@ func (c *Client) Lock() bool {
 		stop <- struct{}{}
 	})
 
+	log.Println(c.svcID, ">>>", 1)
 	ch, err := c.lock.Lock(stop)
 	if err != nil {
 		log.Printf("Lock: %v", err)
 	}
+	log.Println(c.svcID, ">>>", 2)
 
 	select {
 	case <-ch:
+		log.Println(c.svcID, ">>>", 3)
 		return false
 	default:
+		log.Println(c.svcID, ">>>", 4)
 		return true
 	}
 }
