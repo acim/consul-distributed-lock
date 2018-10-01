@@ -1,80 +1,48 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"time"
 
-	consul "github.com/hashicorp/consul/api"
+	"github.com/acim/test-consul-leader-election/pkg/cloud/consul"
+	"github.com/robfig/cron"
 )
 
 func main() {
+	me := os.Getenv("APP_MY_ID")
+	sn := os.Getenv("SERVICE_NAME")
+	var client *consul.Client
+	var err error
 	for {
+		client, err = consul.NewClient("consul:8500", sn, me, 0)
+		if err != nil {
+			log.Printf("%s can't connect to consul: %v\n", me, err)
+			time.Sleep(3 * time.Second)
+		}
+	}
+
+	err = client.Register()
+	if err != nil {
+		log.Printf("%s can't register to consul: %v\n", me, err)
+	}
+
+	c := cron.New()
+	c.AddFunc("0 30 * * * *", func() {
+		lost, err := client.Lock()
+		if err != nil {
+			log.Printf("%s can't acquire lock: %v\n", me, err)
+			return
+		}
+		log.Printf("%s acquired lock - doing something for 10 seconds", me)
 		time.Sleep(10 * time.Second)
-		me := os.Getenv("APP_MY_ID")
-		sn := os.Getenv("SERVICE_NAME")
-
-		client, err := NewConsulClient("consul:8500")
+		err = client.Unlock()
 		if err != nil {
-			fmt.Println(me, err)
+			log.Printf("%s can't release lock: %v\n", me, err)
 		}
+	})
+	c.Start()
+	defer c.Stop()
 
-		err = client.Register(me, sn, 0)
-		if err != nil {
-			fmt.Println(me, err)
-		}
-	}
-}
-
-//Client provides an interface for getting data out of Consul
-type Client interface {
-	// Get a Service from consul
-	Service(string, string) ([]string, error)
-	// Register a service with local agent
-	Register(string, int) error
-	// Deregister a service with local agent
-	DeRegister(string) error
-}
-
-type client struct {
-	consul *consul.Client
-}
-
-//NewConsul returns a Client interface for given consul address
-func NewConsulClient(addr string) (*client, error) {
-	config := consul.DefaultConfig()
-	config.Address = addr
-	c, err := consul.NewClient(config)
-	if err != nil {
-		return nil, err
-	}
-	return &client{consul: c}, nil
-}
-
-// Register a service with consul local agent
-func (c *client) Register(id, name string, port int) error {
-	reg := &consul.AgentServiceRegistration{
-		ID:   id,
-		Name: name,
-		Port: port,
-	}
-	return c.consul.Agent().ServiceRegister(reg)
-}
-
-// DeRegister a service with consul local agent
-func (c *client) DeRegister(id string) error {
-	return c.consul.Agent().ServiceDeregister(id)
-}
-
-// Service return a service
-func (c *client) Service(service, tag string) ([]*consul.ServiceEntry, *consul.QueryMeta, error) {
-	passingOnly := true
-	addrs, meta, err := c.consul.Health().Service(service, tag, passingOnly, nil)
-	if len(addrs) == 0 && err == nil {
-		return nil, nil, fmt.Errorf("service ( %s ) was not found", service)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	return addrs, meta, nil
+	select {}
 }
