@@ -18,7 +18,7 @@ func main() {
 	c := cron.New()
 	c.AddFunc("0,30 * * * * *", func() {
 		log.Printf("%s cron start\n", me)
-		lock, err := consul.NewSingleProcess(consulAddress, fmt.Sprintf("service/%s/lock/", sn))
+		lock, err := consul.NewSingleProcess(consulAddress, 3, 3*time.Second, 3*time.Second, fmt.Sprintf("service/%s/lock/", sn))
 		if err != nil {
 			log.Printf("%s aborting job: %v", me, err)
 			return
