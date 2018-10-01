@@ -38,7 +38,6 @@ func NewSingleRunLock(address, key string) (*singleRunLock, error) {
 
 	se := &api.SessionEntry{
 		Name:     api.DefaultLockSessionName,
-		TTL:      api.DefaultLockSessionTTL,
 		Behavior: api.SessionBehaviorDelete,
 	}
 	id, _, err := session.CreateNoChecks(se, nil)
@@ -47,10 +46,11 @@ func NewSingleRunLock(address, key string) (*singleRunLock, error) {
 	}
 
 	opts := &api.LockOptions{
-		Key:         key,
-		Session:     id,
-		SessionName: se.Name,
-		SessionTTL:  se.TTL,
+		Key:          key,
+		Session:      id,
+		SessionName:  se.Name,
+		LockWaitTime: time.Second,
+		LockTryOnce:  true,
 	}
 	lock, err := consul.LockOpts(opts)
 	if err != nil {
@@ -84,14 +84,13 @@ func (l *singleRunLock) Lock() (bool, error, func() error) {
 }
 
 func (l *singleRunLock) unlock() error {
+	time.Sleep(10 * time.Second)
 	defer l.s.Destroy(l.id, nil)
 
 	err := l.l.Unlock()
 	if err != nil {
 		return fmt.Errorf("error unlocking: %v", err)
 	}
-
-	l.c.KV().Delete(l.k, nil)
 
 	return nil
 }
