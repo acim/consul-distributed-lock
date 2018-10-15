@@ -10,7 +10,7 @@ services:
       driver: "none"
 
   app1:
-    build: .
+    image: acim/go-reflex
     container_name: app1
     depends_on:
       - consul
@@ -18,10 +18,10 @@ services:
       APP_MY_ID: app1
       SERVICE_NAME: app
     volumes:
-      - ./:/go/app
+      - ./:/app
 
   app2:
-    build: .
+    image: acim/go-reflex
     container_name: app2
     depends_on:
       - consul
@@ -29,11 +29,11 @@ services:
       APP_MY_ID: app2
       SERVICE_NAME: app
     volumes:
-      - ./:/go/app
+      - ./:/app
 
 
   app3:
-    build: .
+    image: acim/go-reflex
     container_name: app3
     depends_on:
       - consul
@@ -41,26 +41,4 @@ services:
       APP_MY_ID: app3
       SERVICE_NAME: app
     volumes:
-      - ./:/go/app
-
-  app4:
-    build: .
-    container_name: app4
-    depends_on:
-      - consul
-    environment:
-      APP_MY_ID: app4
-      SERVICE_NAME: app
-    volumes:
-      - ./:/go/app
-
-  app5:
-    build: .
-    container_name: app5
-    depends_on:
-      - consul
-    environment:
-      APP_MY_ID: app5
-      SERVICE_NAME: app
-    volumes:
-      - ./:/go/app
+      - ./:/app
