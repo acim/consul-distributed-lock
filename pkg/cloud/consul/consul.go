@@ -7,91 +7,79 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type singleRunProcess struct {
-	client    *api.Client
-	session   *api.Session
-	sessionID string
-	lock      *api.Lock
-	lockKey   string
-}
-
-func NewSingleProcess(consulAddress string, connRetries int, retryDuration, lockWaitTime time.Duration, lockKey string) (*singleRunProcess, error) {
-	config := api.DefaultConfig()
-	config.Address = consulAddress
-	var consul *api.Client
+// NewSimpleLock creates *SimpleLock.
+func NewSimpleLock(consul *api.Client, lockKey string, lockWaitTime time.Duration) (func() (bool, error), func() error, error) {
 	var err error
-
-	for i := 0; i < connRetries; i++ {
-		consul, err = api.NewClient(config)
-		if err == nil {
-			break
-		}
-		time.Sleep(retryDuration)
-		continue
+	sl := &simpleLock{
+		consul:  consul,
+		lockKey: lockKey,
 	}
 
-	if consul == nil {
-		return nil, fmt.Errorf("error connecting: %s", consulAddress)
-	}
-
-	session := consul.Session()
+	sl.session = sl.consul.Session()
 
 	se := &api.SessionEntry{
 		Name:     api.DefaultLockSessionName,
 		Behavior: api.SessionBehaviorDelete,
 	}
-	id, _, err := session.CreateNoChecks(se, nil)
+	sl.sessionID, _, err = sl.session.CreateNoChecks(se, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating session: %v", err)
+		return nil, nil, fmt.Errorf("error creating session: %v", err)
 	}
 
 	opts := &api.LockOptions{
-		Key:          lockKey,
-		Session:      id,
+		Key:          sl.lockKey,
+		Session:      sl.sessionID,
 		SessionName:  se.Name,
 		LockWaitTime: lockWaitTime,
 		LockTryOnce:  true,
 	}
-	lock, err := consul.LockOpts(opts)
+	sl.lock, err = sl.consul.LockOpts(opts)
 	if err != nil {
-		return nil, fmt.Errorf("error creating lock: %v", err)
+		return nil, nil, fmt.Errorf("error creating lock: %v", err)
 	}
 
-	return &singleRunProcess{
-		client:    consul,
-		session:   session,
-		sessionID: id,
-		lock:      lock,
-		lockKey:   lockKey,
-	}, nil
+	return sl.l, sl.u, err
 }
 
-func (l *singleRunProcess) Lock() (bool, error, func() error) {
-	leaderCh, err := l.lock.Lock(nil)
+type simpleLock struct {
+	consul    *api.Client
+	session   *api.Session
+	sessionID string
+	lock      *api.Lock
+	lockKey   string
+	locked    bool
+}
+
+func (sl *simpleLock) l() (bool, error) {
+	leaderCh, err := sl.lock.Lock(nil)
 	if err != nil {
-		return false, fmt.Errorf("error locking: %v", err), nil
+		return false, fmt.Errorf("error locking: %v", err)
 	}
 	if leaderCh == nil {
-		return false, nil, nil
+		return false, nil
 	}
 	select {
 	case <-leaderCh:
-		return false, fmt.Errorf("error should be leader: %v", err), nil
+		return false, fmt.Errorf("should be leader, unexpected error: %v", err)
 	default:
 	}
 
-	return true, nil, l.unlock
+	sl.locked = true
+	return true, nil
 }
 
-func (l *singleRunProcess) unlock() error {
-	defer l.session.Destroy(l.sessionID, nil)
+func (sl *simpleLock) u() error {
+	if !sl.locked {
+		return nil
+	}
+	defer sl.session.Destroy(sl.sessionID, nil)
 
-	err := l.lock.Unlock()
+	err := sl.lock.Unlock()
 	if err != nil {
 		return fmt.Errorf("error unlocking: %v", err)
 	}
 
-	l.client.KV().Delete(l.lockKey, nil)
+	sl.consul.KV().Delete(sl.lockKey, nil)
 
 	return nil
 }
